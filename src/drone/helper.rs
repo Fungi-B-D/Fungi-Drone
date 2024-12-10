@@ -1,3 +1,4 @@
+/// functions to interact with SourceRoutingHeader
 pub mod header {
     use wg_2024::network::{NodeId, SourceRoutingHeader};
 
@@ -10,87 +11,8 @@ pub mod header {
     }
 }
 
-pub mod check {
-    use super::super::drone::FungiDrone;
-    use wg_2024::packet::{Packet, PacketType};
-
-    use super::{generate, header};
-
-    #[derive(Debug)]
-    pub enum CheckError {
-        MustShortcut(Packet),
-        SendNack(Packet),
-    }
-
-    // For all these checks if the packet original packet is a message fragment we send a nack in reverse
-    // If it was already a Nack/Ack/FloodResponse we need to send it to the sim controller
-
-    pub fn id_matches_hop(mut p: Packet, d: &FungiDrone) -> Result<Packet, CheckError> {
-        if let Some(hop) = header::get_hop(&p.routing_header) {
-            if d.id != hop {
-                if let PacketType::MsgFragment(f) = p.pack_type {
-                    header::increment_index(&mut p.routing_header);
-
-                    let err_p = generate::unexpected(
-                        p.routing_header,
-                        p.session_id,
-                        d.id,
-                        f.fragment_index,
-                    );
-                    return Err(CheckError::SendNack(err_p));
-                }
-            }
-
-            return Ok(p);
-        }
-        println!("Error: Id does not match hop_index, hop index beyond hops length");
-        return Err(CheckError::MustShortcut(p));
-    }
-
-    pub fn destination_is_drone(p: Packet) -> Result<Packet, CheckError> {
-        if p.routing_header.hop_index == p.routing_header.hops.len() {
-            if let PacketType::MsgFragment(f) = p.pack_type {
-                let err_p =
-                    generate::destination_drone(p.routing_header, p.session_id, f.fragment_index);
-                return Err(CheckError::SendNack(err_p));
-            }
-            return Err(CheckError::MustShortcut(p));
-        }
-        Ok(p)
-    }
-
-    pub fn message_drop(p: Packet, d: &FungiDrone) -> Result<Packet, CheckError> {
-        if let PacketType::MsgFragment(msg_framgent) = p.clone().pack_type {
-            if FungiDrone::dropped(d) {
-                let err_p = generate::dropped_packet(p.routing_header, p.session_id, msg_framgent);
-                return Err(CheckError::SendNack(err_p));
-            }
-        }
-        Ok(p)
-    }
-
-    pub fn not_neighbor(p: Packet, d: &FungiDrone) -> Result<Packet, CheckError> {
-        if let Some(next_hop) = header::get_hop(&p.routing_header) {
-            if !d.packet_send.contains_key(&next_hop) {
-                if let PacketType::MsgFragment(msg) = p.pack_type {
-                    let err_p = generate::route_error(
-                        p.routing_header,
-                        p.session_id,
-                        next_hop,
-                        msg.fragment_index,
-                    );
-                    return Err(CheckError::SendNack(err_p));
-                }
-
-                return Err(CheckError::MustShortcut(p));
-            }
-            return Ok(p);
-        }
-        println!("Error: Next hop not neighbor, hop_index beyond hops length");
-        Err(CheckError::MustShortcut(p))
-    }
-}
-
+/// These functions generate Nack packets based on the original packet.
+/// The returned packet is ready to be sent
 pub mod generate {
     use super::paths::{self, flooding_response_path};
     use wg_2024::packet::NackType;
@@ -199,7 +121,9 @@ pub mod generate {
         }
     }
 }
-
+/// Functions used to get paths based on:
+/// - FloodRequest/Response: path_trace
+/// - Other: route_header
 pub mod paths {
     use wg_2024::{network::NodeId, packet::NodeType};
 
