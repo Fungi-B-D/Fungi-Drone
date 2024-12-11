@@ -16,16 +16,15 @@ impl FungiDrone {
     /// - Nack/Ack/FloodResponse: Are handled as usual
     /// - FloodRequests: ignored :(
     pub(super) fn handle_packet_crashed(&mut self, mut packet: Packet) {
-        match packet.pack_type.clone() {
-            PacketType::MsgFragment(f) => {
+        match packet.pack_type {
+            PacketType::MsgFragment(_) => {
                 header::increment_index(&mut packet.routing_header);
-                self.handle_send_error(packet, self.id, f.fragment_index);
+                self.handle_send_error(packet, self.id);
             }
             PacketType::Ack(_) | PacketType::Nack(_) | PacketType::FloodResponse(_) => {
                 let res = self.check_packet(packet);
                 if let Some(pack_ready) = self.handle_check_result(res) {
-                    let sender_res = self.get_send_info(pack_ready); // fine to pass ownership
-
+                    let sender_res = self.get_send_info(pack_ready);
                     if sender_res.is_none() {
                         return;
                     }

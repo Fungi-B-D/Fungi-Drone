@@ -102,9 +102,13 @@ mod check {
     /// - `p`: The packet to be checked
     /// - `d`: The current drone
     pub fn message_drop(p: Packet, d: &FungiDrone) -> Result<Packet, CheckError> {
-        if let PacketType::MsgFragment(msg_framgent) = p.clone().pack_type {
-            if FungiDrone::dropped(d) {
-                let err_p = generate::dropped_packet(p.routing_header, p.session_id, msg_framgent);
+        // We pattern match and then unwrap with if let to avoid cloning
+        if !matches!(&p.pack_type, PacketType::MsgFragment(_)) {
+            return Ok(p);
+        }
+        if FungiDrone::dropped(d) {
+            if let PacketType::MsgFragment(msg_fragment) = p.pack_type {
+                let err_p = generate::dropped_packet(p.routing_header, p.session_id, msg_fragment);
                 return Err(CheckError::SendNack(err_p));
             }
         }

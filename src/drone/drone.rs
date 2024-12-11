@@ -148,10 +148,8 @@ impl FungiDrone {
                 self.debug("The next node's channel is full", Some(msg));
                 return;
             }
-            TrySendError::Disconnected(msg) => match &msg.pack_type.clone() {
-                PacketType::MsgFragment(f) => {
-                    self.handle_send_error(msg, next_id, f.fragment_index)
-                }
+            TrySendError::Disconnected(msg) => match &msg.pack_type {
+                PacketType::MsgFragment(_) => self.handle_send_error(msg, next_id),
                 PacketType::Ack(_) | PacketType::Nack(_) | PacketType::FloodResponse(_) => {
                     self.send_controller(DroneEvent::ControllerShortcut(msg))
                 }
@@ -168,12 +166,15 @@ impl FungiDrone {
     /// - `p`: Packet to sent
     /// - `next_id`: the id of the crashed drone.
     /// - `f_index`: the fragment index of the current MsgFragment
-    pub(super) fn handle_send_error(&mut self, p: Packet, next_id: u8, f_index: u64) {
-        let err_p = generate::route_error(p.routing_header, p.session_id, next_id, f_index);
+    pub(super) fn handle_send_error(&mut self, p: Packet, next_id: u8) {
+        if let PacketType::MsgFragment(f) = p.pack_type {
+            let err_p =
+                generate::route_error(p.routing_header, p.session_id, next_id, f.fragment_index);
 
-        if let Some((err_p, err_id, err_sender)) = self.get_send_info(err_p) {
-            // fine to pass ownership
-            self.forward(err_p, err_id, err_sender);
+            if let Some((err_p, err_id, err_sender)) = self.get_send_info(err_p) {
+                // fine to pass ownership
+                self.forward(err_p, err_id, err_sender);
+            }
         }
     }
 
