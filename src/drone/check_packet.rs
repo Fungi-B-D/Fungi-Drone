@@ -8,15 +8,15 @@ impl FungiDrone {
     /// Returns ```Ok(Packet)``` to give back ownership if packet is valid.
     /// Returns ```Err(CheckError)``` to express error response
     pub(super) fn check_packet(&mut self, packet: Packet) -> Result<Packet, CheckError> {
-        let mut packet = check::id_matches_hop(packet, &self)?;
+        let mut packet = check::id_matches_hop(packet, self)?;
 
         header::increment_index(&mut packet.routing_header);
 
         packet = check::destination_is_drone(packet)?;
 
-        packet = check::message_drop(packet, &self)?;
+        packet = check::message_drop(packet, self)?;
 
-        packet = check::not_neighbor(packet, &self)?;
+        packet = check::not_neighbor(packet, self)?;
 
         Ok(packet)
     }
@@ -33,10 +33,10 @@ impl FungiDrone {
         match res.unwrap_err() {
             CheckError::MustShortcut(err) => {
                 self.send_controller(DroneEvent::ControllerShortcut(err));
-                return None;
+                None
             }
-            CheckError::SendNack(err) => return Some(err),
-            CheckError::Debug => return None,
+            CheckError::SendNack(err) => Some(err),
+            CheckError::Debug => None,
         }
     }
 }
@@ -79,7 +79,7 @@ mod check {
             return Err(CheckError::SendNack(err_p));
         }
 
-        return Err(CheckError::MustShortcut(p));
+        Err(CheckError::MustShortcut(p))
     }
 
     /// Checks if the current drone is the last hop
@@ -137,6 +137,6 @@ mod check {
             return Ok(p);
         }
         d.debug("hop_index beyond hops length", Some(p));
-        return Err(CheckError::Debug);
+        Err(CheckError::Debug)
     }
 }

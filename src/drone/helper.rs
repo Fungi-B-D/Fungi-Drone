@@ -24,11 +24,11 @@ pub mod generate {
     fn get_reversed_routing_header(routing_header: SourceRoutingHeader) -> SourceRoutingHeader {
         let reversed_route = paths::backwards_path(routing_header.hops, routing_header.hop_index);
 
-        let reversed_routing_header = SourceRoutingHeader {
+        
+        SourceRoutingHeader {
             hop_index: 1,
             hops: reversed_route,
-        };
-        reversed_routing_header
+        }
     }
 
     pub fn unexpected(
@@ -142,7 +142,7 @@ pub mod paths {
         let mut r_path = path_trace
             .into_iter()
             .scan(false, |found, node_id| {
-                if *found == true {
+                if *found {
                     return None;
                 }
                 if node_id == search_id {

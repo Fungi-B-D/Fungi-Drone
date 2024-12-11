@@ -7,7 +7,7 @@ impl FungiDrone {
         if self.debug_print {
             println!("[{}]: {debug_message}", self.id);
         }
-        if self.debug_shortcut && !debug_packet.is_none() {
+        if self.debug_shortcut && debug_packet.is_some() {
             self.send_controller(wg_2024::controller::DroneEvent::ControllerShortcut(
                 debug_packet.unwrap(),
             ));

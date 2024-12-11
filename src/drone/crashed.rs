@@ -34,7 +34,7 @@ impl FungiDrone {
                     self.forward(pack_ready, id, sender);
                 }
             }
-            PacketType::FloodRequest(_) => return,
-        };
+            PacketType::FloodRequest(_) => (),
+        }
     }
 }

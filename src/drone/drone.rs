@@ -146,14 +146,13 @@ impl FungiDrone {
         match res.unwrap_err() {
             TrySendError::Full(msg) => {
                 self.debug("The next node's channel is full", Some(msg));
-                return;
             }
             TrySendError::Disconnected(msg) => match &msg.pack_type {
                 PacketType::MsgFragment(_) => self.handle_send_error(msg, next_id),
                 PacketType::Ack(_) | PacketType::Nack(_) | PacketType::FloodResponse(_) => {
                     self.send_controller(DroneEvent::ControllerShortcut(msg))
                 }
-                PacketType::FloodRequest(_) => return,
+                PacketType::FloodRequest(_) => (),
             },
         }
     }
@@ -235,7 +234,7 @@ impl FungiDrone {
     /// - `event`: The event object to be sent
     pub(super) fn send_controller(&self, event: DroneEvent) {
         let res = self.controller_send.try_send(event);
-        if let Err(_) = res {
+        if res.is_err() {
             self.debug("no longer has access to simulation controller!", None);
         }
     }
