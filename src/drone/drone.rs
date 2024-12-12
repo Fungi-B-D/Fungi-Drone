@@ -20,6 +20,7 @@ pub struct FungiDrone {
     pub(super) pdr: f32,
     pub(super) debug_print: bool,
     pub(super) debug_shortcut: bool,
+    pub(super) shortcut_requests: bool,
 }
 
 pub(super) enum CommandResult {
@@ -47,6 +48,7 @@ impl Drone for FungiDrone {
             seen_flood_ids: HashSet::new(),
             debug_print: false,
             debug_shortcut: false,
+            shortcut_requests: true,
         }
     }
 
@@ -221,6 +223,10 @@ impl FungiDrone {
     /// -`packet`: The packet to be sent in the event
     /// -`dropped`: Whether or not the packet has been dropped
     pub(super) fn log_action(&self, packet: Packet, dropped: bool) {
+        if matches!(&packet.pack_type, PacketType::FloodRequest(_)) && !self.shortcut_requests {
+          return;
+        };
+
         let packet_to_send = match dropped {
             true => DroneEvent::PacketDropped(packet),
             false => DroneEvent::PacketSent(packet),
@@ -237,5 +243,9 @@ impl FungiDrone {
         if res.is_err() {
             self.debug("no longer has access to simulation controller!", None);
         }
+    }
+
+    pub fn disable_request_log(&mut self){
+      self.shortcut_requests = false;
     }
 }

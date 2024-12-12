@@ -14,11 +14,11 @@ impl FungiDrone {
         }
     }
 
-    pub fn set_debug_print(&mut self, state: bool) {
-        self.debug_print = state;
+    pub fn set_debug_print(&mut self) {
+        self.debug_print = true;
     }
 
-    pub fn set_debug_shortcut(&mut self, state: bool) {
-        self.debug_shortcut = state;
+    pub fn set_debug_shortcut(&mut self) {
+        self.debug_shortcut = true;
     }
 }

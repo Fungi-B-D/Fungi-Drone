@@ -1,5 +1,5 @@
 /// functions to interact with SourceRoutingHeader
-pub mod header {
+pub(super) mod header {
     use wg_2024::network::{NodeId, SourceRoutingHeader};
 
     pub fn get_hop(h: &SourceRoutingHeader) -> Option<NodeId> {
@@ -13,7 +13,7 @@ pub mod header {
 
 /// These functions generate Nack packets based on the original packet.
 /// The returned packet is ready to be sent
-pub mod generate {
+pub(super) mod generate {
     use super::paths::{self, flooding_response_path};
     use wg_2024::packet::NackType;
     use wg_2024::{
@@ -102,7 +102,6 @@ pub mod generate {
     }
 
     pub fn flood_response(node_id: u8, flood_req: FloodRequest, session_id: u64) -> Packet {
-        let unzip_path = paths::unzip_path(&flood_req.path_trace);
 
         let response = FloodResponse {
             flood_id: flood_req.flood_id,
@@ -111,7 +110,7 @@ pub mod generate {
 
         let packet_header = SourceRoutingHeader {
             hop_index: 1,
-            hops: flooding_response_path(node_id, unzip_path),
+            hops: flooding_response_path(node_id, &response.path_trace),
         };
 
         Packet {
@@ -124,7 +123,7 @@ pub mod generate {
 /// Functions used to get paths based on:
 /// - FloodRequest/Response: path_trace
 /// - Other: route_header
-pub mod paths {
+pub(super) mod paths {
     use wg_2024::{network::NodeId, packet::NodeType};
 
     pub fn backwards_path(mut hops: Vec<NodeId>, hop_index: usize) -> Vec<NodeId> {
@@ -133,25 +132,20 @@ pub mod paths {
         hops
     }
 
-    pub fn unzip_path(path_trace: &Vec<(u8, NodeType)>) -> Vec<u8> {
-        let (l, _): (Vec<u8>, Vec<NodeType>) = path_trace.iter().cloned().unzip();
-        l
-    }
-
-    pub fn flooding_response_path(search_id: u8, path_trace: Vec<u8>) -> Vec<u8> {
-        let mut r_path = path_trace
-            .into_iter()
-            .scan(false, |found, node_id| {
-                if *found {
-                    return None;
-                }
-                if node_id == search_id {
-                    *found = true;
-                }
-                Some(node_id)
-            })
-            .collect::<Vec<u8>>();
-        r_path.reverse();
-        r_path
-    }
+    pub fn flooding_response_path(search_id: u8, path_trace: &Vec<(u8, NodeType)>) -> Vec<u8> {
+      let mut r_path = path_trace
+          .into_iter()
+          .scan(false, |found, (node_id, _)| {
+              if *found == true {
+                  return None;
+              }
+              if *node_id == search_id {
+                  *found = true;
+              }
+              Some(*node_id)
+          })
+          .collect::<Vec<u8>>();
+      r_path.reverse();
+      r_path
+  }
 }
