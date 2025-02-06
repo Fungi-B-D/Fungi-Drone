@@ -37,7 +37,7 @@ impl FungiDrone {
             }
             CheckError::SendNack(err) => Some(err),
             CheckError::Debug => None,
-            CheckError::Dropped(packet) => { self.log_action(packet.clone(), true); return Some(packet); },
+            CheckError::Dropped(mut packet) => { self.log_action(packet.clone(), true); packet.routing_header.increase_hop_index();return Some(packet); },
         }
     }
 }
