@@ -37,6 +37,7 @@ impl FungiDrone {
             }
             CheckError::SendNack(err) => Some(err),
             CheckError::Debug => None,
+            CheckError::Dropped(packet) => { self.log_action(packet, true); return None; },
         }
     }
 }
@@ -51,6 +52,7 @@ mod check {
     pub enum CheckError {
         MustShortcut(Packet),
         SendNack(Packet),
+        Dropped(Packet),
         Debug,
     }
 
@@ -107,10 +109,7 @@ mod check {
             return Ok(p);
         }
         if FungiDrone::dropped(d) {
-            if let PacketType::MsgFragment(msg_fragment) = p.pack_type {
-                let err_p = generate::dropped_packet(p.routing_header, p.session_id, msg_fragment);
-                return Err(CheckError::SendNack(err_p));
-            }
+            return Err(CheckError::Dropped(p));
         }
         Ok(p)
     }

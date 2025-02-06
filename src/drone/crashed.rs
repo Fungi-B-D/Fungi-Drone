@@ -30,7 +30,7 @@ impl FungiDrone {
                     }
 
                     let (pack_ready, id, sender) = sender_res.unwrap();
-                    self.log_action(pack_ready.clone(), self.is_dropped(&pack_ready));
+                    self.log_action(pack_ready.clone(), false);
                     self.forward(pack_ready, id, sender);
                 }
             }

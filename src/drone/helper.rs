@@ -42,9 +42,15 @@ pub(super) mod generate {
             nack_type: NackType::UnexpectedRecipient(drone_id),
         };
 
+        let mut corrected_header = get_reversed_routing_header(routing_header);
+
+        if let Some(first) = corrected_header.hops.get_mut(0) {
+          *first = drone_id;
+        }
+
         Packet {
             pack_type: PacketType::Nack(unexpected_nack),
-            routing_header: get_reversed_routing_header(routing_header),
+            routing_header: corrected_header,
             session_id,
         }
     }
@@ -103,6 +109,8 @@ pub(super) mod generate {
 
     pub fn flood_response(node_id: u8, flood_req: FloodRequest, session_id: u64) -> Packet {
 
+        let initiator = flood_req.initiator_id;
+
         let response = FloodResponse {
             flood_id: flood_req.flood_id,
             path_trace: flood_req.path_trace,
@@ -110,7 +118,7 @@ pub(super) mod generate {
 
         let packet_header = SourceRoutingHeader {
             hop_index: 1,
-            hops: flooding_response_path(node_id, &response.path_trace),
+            hops: flooding_response_path(node_id, &response.path_trace,initiator),
         };
 
         Packet {
@@ -132,7 +140,7 @@ pub(super) mod paths {
         hops
     }
 
-    pub fn flooding_response_path(search_id: u8, path_trace: &Vec<(u8, NodeType)>) -> Vec<u8> {
+    pub fn flooding_response_path(search_id: u8, path_trace: &Vec<(u8, NodeType)>, initiator_id: NodeId) -> Vec<u8> {
       let mut r_path = path_trace
           .into_iter()
           .scan(false, |found, (node_id, _)| {
@@ -145,7 +153,12 @@ pub(super) mod paths {
               Some(*node_id)
           })
           .collect::<Vec<u8>>();
+
       r_path.reverse();
+      if matches!(r_path.last(),Some(first_el) if *first_el != initiator_id) {
+        r_path.insert(0, initiator_id);
+      }
+
       r_path
   }
 }

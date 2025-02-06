@@ -126,7 +126,7 @@ impl FungiDrone {
 
                 let (pack_ready, id, sender) = sender_res.unwrap();
 
-                self.log_action(pack_ready.clone(), self.is_dropped(&pack_ready));
+                self.log_action(pack_ready.clone(), false);
                 self.forward(pack_ready, id, sender);
             }
         }
@@ -209,11 +209,6 @@ impl FungiDrone {
         let mut xoshiro = Xoshiro256PlusPlus::seed_from_u64(xoshiro_seed);
         let random_value = xoshiro.gen_range(0.0..1.0);
         random_value < self.pdr as f64
-    }
-
-    /// Pattern matches to check if a packet has been dropped
-    pub(super) fn is_dropped(&self, packet: &Packet) -> bool {
-        matches!(packet.pack_type, PacketType::Nack(ref n) if matches!(n.nack_type,NackType::Dropped))
     }
 
     /// Decides whether to send a packet dropped or packet sent event to the controller
