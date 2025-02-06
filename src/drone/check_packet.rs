@@ -1,7 +1,7 @@
 use check::CheckError;
-use wg_2024::{controller::DroneEvent, packet::Packet};
+use wg_2024::{controller::DroneEvent, packet::{Nack, Packet}};
 
-use super::{header, FungiDrone};
+use super::{generate, header, FungiDrone};
 
 impl FungiDrone {
     /// Ensure a packet is correct before forwarding
@@ -37,7 +37,17 @@ impl FungiDrone {
             }
             CheckError::SendNack(err) => Some(err),
             CheckError::Debug => None,
-            CheckError::Dropped(mut packet) => { self.log_action(packet.clone(), true); packet.routing_header.increase_hop_index();return Some(packet); },
+            CheckError::Dropped(mut packet) => {
+               self.log_action(packet.clone(), true);
+               packet.routing_header.increase_hop_index();
+
+               if let wg_2024::packet::PacketType::MsgFragment(fragment) = packet.pack_type {
+                let dropped_packet = generate::dropped_packet(packet.routing_header, packet.session_id, fragment);
+                return Some(dropped_packet);
+              }
+
+              return None;
+            },
         }
     }
 }

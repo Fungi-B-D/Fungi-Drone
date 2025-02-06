@@ -141,6 +141,7 @@ pub(super) mod paths {
     }
 
     pub fn flooding_response_path(search_id: u8, path_trace: &Vec<(u8, NodeType)>, initiator_id: NodeId) -> Vec<u8> {
+      
       let mut r_path = path_trace
           .into_iter()
           .scan(false, |found, (node_id, _)| {
@@ -161,4 +162,5 @@ pub(super) mod paths {
 
       r_path
   }
+
 }
