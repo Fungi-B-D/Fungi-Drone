@@ -155,8 +155,8 @@ pub(super) mod paths {
           .collect::<Vec<u8>>();
 
       r_path.reverse();
-      if matches!(r_path.last(),Some(first_el) if *first_el != initiator_id) {
-        r_path.insert(0, initiator_id);
+      if matches!(r_path.last(),Some(last_el) if *last_el != initiator_id) {
+        r_path.push(initiator_id);
       }
 
       r_path

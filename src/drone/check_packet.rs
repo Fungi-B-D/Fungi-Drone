@@ -103,12 +103,13 @@ mod check {
     /// ## Arguments
     /// - `p`: The packet to be checked
     /// - `d`: The current drone
-    pub fn message_drop(p: Packet, d: &FungiDrone) -> Result<Packet, CheckError> {
+    pub fn message_drop(mut p: Packet, d: &FungiDrone) -> Result<Packet, CheckError> {
         // We pattern match and then unwrap with if let to avoid cloning
         if !matches!(&p.pack_type, PacketType::MsgFragment(_)) {
             return Ok(p);
         }
         if FungiDrone::dropped(d) {
+            p.routing_header.decrease_hop_index();
             return Err(CheckError::Dropped(p));
         }
         Ok(p)
